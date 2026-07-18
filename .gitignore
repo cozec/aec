@@ -1,0 +1,10 @@
+AEC-Challenge/
+pyaec/
+python-webrtc-audio-processing/
+.venv/
+data/
+results/
+logs/
+__pycache__/
+*.pyc
+.DS_Store

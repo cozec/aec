@@ -1,0 +1,12 @@
+diff --git a/setup.py b/setup.py
+index ff2883a..ee4382f 100644
+--- a/setup.py
++++ b/setup.py
+@@ -54,6 +54,7 @@ def process_arch(arch, set_compile_flags=False):
+             define_macros.append(('WEBRTC_MAC', None))
+             define_macros.append(('WEBRTC_ARCH_ARM64', None))
+             define_macros.append(('WEBRTC_CLOCK_TYPE_REALTIME', None))
++            ap_sources = [src for src in ap_sources if src.find('_win.') < 0]
+             extra_compile_args.clear()
+         else:
+             if set_compile_flags:
