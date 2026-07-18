@@ -90,3 +90,33 @@ speech `s`, and mic signal `d = scale*s + y`. Each AEC produces `e`. Metrics
 A cross-correlation bulk-delay estimator aligns `x` before filtering (as
 real AEC front-ends do) — without it the dataset's 40–120 ms time-varying
 delay prevents the frequency-domain Kalman filters from adapting at all.
+
+## Background: Kalman filtering for AEC
+
+![Time-domain Kalman filter for AEC](plots/kalman_time_domain_diagram.png)
+
+**Time-domain (pyaec `kalman.py`).** The echo path is treated as a hidden
+state: an N-tap FIR filter `w` that drifts as a random walk
+(`w(n+1) = w(n) + Δ`, process noise `Q`), observed one noisy scalar at a
+time through the mic, `d(n) = uᵀw + v(n)`, where `u` is the last N far-end
+samples and `v` is near-end speech + noise. Each sample the filter runs
+predict → gain → correct (diagram above): uncertainty `P` grows by `Q`,
+the Kalman gain `K = P̄u/(uᵀP̄u + R)` balances that uncertainty against the
+observation-noise estimate `R = e²`, and the state moves by `K·e`. Because
+near-end speech inflates `R` and collapses the gain, the filter freezes
+during double-talk instead of diverging — robustness NLMS only gets from an
+external double-talk detector. Special cases: `Q=0`, fixed `R` → RLS;
+`P ∝ I` frozen → NLMS with a variable step size. The catch: the full N×N
+covariance `P` costs O(N²) per sample — infeasible at the 4096 taps this
+dataset needs, which is why it sits out the benchmark.
+
+**Frequency-domain (pyaec `fdkf.py` / `pfdkf.py`, after Enzner & Vary
+2006).** Same predict–gain–correct cycle, but run per FFT bin on
+overlap-save blocks: the FFT approximately decorrelates speech, so N
+independent scalar Kalman filters replace the N×N covariance — O(N log N)
+per block instead of O(N²) per sample. `R` becomes a smoothed error
+spectrum (`R = βR + (1−β)|E|²`), a better-behaved noise estimate than the
+instantaneous `e²`. PFDKF partitions the filter (32×256 here) to keep block
+latency at 16 ms while still covering a 512 ms echo path. These are the
+Kalman variants in the results table above, and the linear backbone that
+neural extensions (NKF, NeuralKalman) build on.
