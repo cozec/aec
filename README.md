@@ -7,45 +7,11 @@ adaptive filters from [ewan-xu/pyaec](https://github.com/ewan-xu/pyaec) and
 on the [Microsoft AEC-Challenge](https://github.com/microsoft/AEC-Challenge)
 synthetic dataset (ICASSP 2021–2023 challenges).
 
-## Results
-
-Means over 12 double-talk scenarios (8 clean-linear + 4 nonlinear, 16 kHz),
-ordered by steady-state true ERLE:
-
-| Algorithm | True ERLE steady | ST-FE ERLE (echo suppression) | Near-end SDR (duplex quality) | RTF |
-|---|---|---|---|---|
-| FDAF (M=4096, mu=0.1) | **6.4 dB** | 4.9 | 8.0 | 0.004 |
-| FDKF (M=4096) | 4.6 | 3.1 | 6.2 | 0.005 |
-| PFDKF (32×256) | 4.5 | 1.7 | 6.0 | 0.013 |
-| WebRTC AEC (full) | 0.1 | **16.3** | −1.8 | **0.001** |
-| NLMS (4096, mu=0.05) | −2.3 | 0.8 | 0.1 | 0.12 |
-| NLMS (4096, mu=0.2) | −5.6 | −1.5 | −3.6 | 0.12 |
-| PFDAF (32×256, mu=0.1) | −5.9 | −4.7 | 0.6 | 0.004 |
-
-![Steady-state true ERLE by algorithm](plots/erle_by_algorithm.png)
-
-The linear pyaec filters and WebRTC occupy opposite corners of the
-suppression/duplex trade-off — WebRTC's nonlinear suppressor (NLP) delivers
-by far the strongest echo suppression but gates near-end speech during
-far-end activity (half-duplex behavior):
-
-![Echo suppression vs near-end quality](plots/suppression_vs_quality.png)
-
-Example on one clean-linear scenario — the linear FDAF preserves near-end
-speech, WebRTC suppresses echo far harder but attenuates near-end speech:
-
-![FDAF example](plots/example_waveforms.png)
-![WebRTC example](plots/example_webrtc.png)
-
-See [summary.md](summary.md) for the full analysis, including why the
-dataset's time-varying echo delay (15–117 ms, jumping mid-clip) breaks
-unaligned adaptive filters, and double-talk divergence of NLMS.
-
 ## The algorithms
 
-All rows are adaptive filters learning the echo path (the response from
-loudspeaker signal `x` to the echo in the mic) so they can subtract a
-predicted echo; they differ in how they adapt:
+All benchmarked algorithms are adaptive filters learning the echo path (the
+response from loudspeaker signal `x` to the echo in the mic) so they can
+subtract a predicted echo; they differ in how they adapt:
 
 - **NLMS (4096 taps, mu=0.05 / 0.2)** — time-domain Normalized LMS: every
   sample, nudge all taps down the error gradient, step size normalized by
@@ -91,6 +57,40 @@ predicted echo; they differ in how they adapt:
 In one sentence: gradient filters (NLMS/PFDAF) die under double-talk,
 Kalman filters survive it by design, FDAF survives it by accident, and
 WebRTC trades duplex transparency for suppression.
+
+## Results
+
+Means over 12 double-talk scenarios (8 clean-linear + 4 nonlinear, 16 kHz),
+ordered by steady-state true ERLE:
+
+| Algorithm | True ERLE steady | ST-FE ERLE (echo suppression) | Near-end SDR (duplex quality) | RTF |
+|---|---|---|---|---|
+| FDAF (M=4096, mu=0.1) | **6.4 dB** | 4.9 | 8.0 | 0.004 |
+| FDKF (M=4096) | 4.6 | 3.1 | 6.2 | 0.005 |
+| PFDKF (32×256) | 4.5 | 1.7 | 6.0 | 0.013 |
+| WebRTC AEC (full) | 0.1 | **16.3** | −1.8 | **0.001** |
+| NLMS (4096, mu=0.05) | −2.3 | 0.8 | 0.1 | 0.12 |
+| NLMS (4096, mu=0.2) | −5.6 | −1.5 | −3.6 | 0.12 |
+| PFDAF (32×256, mu=0.1) | −5.9 | −4.7 | 0.6 | 0.004 |
+
+![Steady-state true ERLE by algorithm](plots/erle_by_algorithm.png)
+
+The linear pyaec filters and WebRTC occupy opposite corners of the
+suppression/duplex trade-off — WebRTC's nonlinear suppressor (NLP) delivers
+by far the strongest echo suppression but gates near-end speech during
+far-end activity (half-duplex behavior):
+
+![Echo suppression vs near-end quality](plots/suppression_vs_quality.png)
+
+Example on one clean-linear scenario — the linear FDAF preserves near-end
+speech, WebRTC suppresses echo far harder but attenuates near-end speech:
+
+![FDAF example](plots/example_waveforms.png)
+![WebRTC example](plots/example_webrtc.png)
+
+See [summary.md](summary.md) for the full analysis, including why the
+dataset's time-varying echo delay (15–117 ms, jumping mid-clip) breaks
+unaligned adaptive filters, and double-talk divergence of NLMS.
 
 ## Layout
 
