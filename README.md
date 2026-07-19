@@ -41,6 +41,48 @@ See [summary.md](summary.md) for the full analysis, including why the
 dataset's time-varying echo delay (15–117 ms, jumping mid-clip) breaks
 unaligned adaptive filters, and double-talk divergence of NLMS.
 
+## The algorithms
+
+All rows are adaptive filters learning the echo path (the response from
+loudspeaker signal `x` to the echo in the mic) so they can subtract a
+predicted echo; they differ in how they adapt:
+
+- **NLMS (4096 taps, mu=0.05 / 0.2)** — time-domain Normalized LMS: every
+  sample, nudge all taps down the error gradient, step size normalized by
+  input power. No double-talk defense — near-end speech looks like error
+  and drives mis-adaptation, which is why both configs go negative here
+  (mu=0.2 adapts faster and diverges harder). Per-sample loop over 4096
+  taps also makes it the slowest (RTF 0.12).
+- **FDAF (M=4096, mu=0.1)** — block NLMS in the FFT domain: one
+  4096-sample block per update, bins adapt near-independently, ~30× cheaper.
+  Its table win is partly accidental: the single huge block adapts slowly,
+  which happens to protect it during double-talk (summary finding 3).
+- **PFDAF (32×256, mu=0.1)** — partitioned FDAF: the same filter split into
+  32×256-sample partitions, cutting block latency from 256 ms to 16 ms.
+  The fast small-block adaptation inherits NLMS's double-talk fragility —
+  it goes negative.
+- **FDKF (M=4096)** — frequency-domain Kalman filter (Enzner & Vary): the
+  echo path is a drifting hidden state (process noise `Q`) observed through
+  a noisy mic (`R` from the error spectrum). Near-end speech inflates `R`,
+  collapsing the Kalman gain, so the filter freezes itself during
+  double-talk instead of diverging — built-in robustness that gradient
+  filters only get from an external double-talk detector. See the
+  [Kalman background](#background-kalman-filtering-for-aec) below.
+- **PFDKF (32×256)** — partitioned FDKF: Kalman machinery at 16 ms block
+  latency. Unlike PFDAF, fast adaptation doesn't hurt it — the gain
+  provides the protection. Most consistent row across clean/nonlinear
+  conditions, and the strongest classical baseline in the literature.
+- **WebRTC AEC (full)** — the production system: a linear filter *plus* a
+  nonlinear suppressor (NLP) that attenuates residual echo. Fastest (RTF
+  0.001) and by far the strongest suppressor (16.3 dB ST-FE ERLE), but the
+  NLP gates near-end speech whenever far-end is active (−1.8 dB near-end
+  SDR, half-duplex behavior), so the combined true-ERLE metric nets out
+  near zero.
+
+In one sentence: gradient filters (NLMS/PFDAF) die under double-talk,
+Kalman filters survive it by design, FDAF survives it by accident, and
+WebRTC trades duplex transparency for suppression.
+
 ## Layout
 
 - `src/benchmark.py` — pyaec benchmark harness (delay alignment + filters + metrics)
