@@ -1,0 +1,45 @@
+%%{init: {"theme": "base", "themeVariables": {
+  "fontFamily": "Helvetica Neue, Arial, sans-serif",
+  "primaryColor": "#eef2ff", "primaryBorderColor": "#6366f1", "primaryTextColor": "#1e1b4b",
+  "lineColor": "#64748b", "edgeLabelBackground": "#f8fafc",
+  "clusterBkg": "#f8fafc", "clusterBorder": "#cbd5e1"
+}}}%%
+graph LR
+  subgraph FE["Far End"]
+    FT["🗣️ Far-end talker"]
+  end
+
+  subgraph AEC["Acoustic Echo Canceller"]
+    AF["Adaptive Filter"]
+    AA["Adaptive Algorithm"]
+    DTD["Double-Talk Detector"]
+    SUM((" Σ "))
+  end
+
+  subgraph NE["Near End Room"]
+    SPK["🔊 Loudspeaker"]
+    MIC["🎙️ Microphone"]
+    NT["🗣️ Near-end talker"]
+  end
+
+  FT -->|"x"| AF
+  FT -->|"x"| DTD
+  FT -->|"far-end signal x"| SPK
+  SPK -.->|"echo path (room reflections)"| MIC
+  NT -->|"near-end speech s"| MIC
+  MIC -->|"d = echo + s   (+)"| SUM
+  MIC -->|"d"| DTD
+  AF -->|"echo estimate ŷ   (−)"| SUM
+  SUM -->|"error e"| AA
+  AA -->|"update weights"| AF
+  DTD -->|"freeze / adapt"| AA
+  SUM -->|"e = d − ŷ   → to far end"| FT
+
+  classDef person fill:#fef9c3,stroke:#ca8a04,color:#713f12;
+  classDef device fill:#dcfce7,stroke:#16a34a,color:#14532d;
+  classDef core fill:#eef2ff,stroke:#6366f1,color:#1e1b4b;
+  classDef sum fill:#fee2e2,stroke:#dc2626,color:#7f1d1d;
+  class FT,NT person;
+  class SPK,MIC device;
+  class AF,AA,DTD core;
+  class SUM sum;
