@@ -124,10 +124,30 @@ Each synthetic scenario provides far-end speech `x`, echo `y`, near-end
 speech `s`, and mic signal `d = scale*s + y`. Each AEC produces `e`. Metrics
 (all computable exactly thanks to ground-truth echo, valid during double-talk):
 
-- **True ERLE** `10·log10(Σy²/Σr²)`, residual `r = e − (d − y)` — combined
-  measure penalizing residual echo and near-end damage.
-- **ST-FE ERLE** — classic ERLE over far-end single-talk frames only.
-- **Near-end SDR** — near-end speech integrity over near-end-active frames.
+- **True ERLE** `10·log10(Σy²/Σr²)`, residual `r = e − (d − y)` — the overall
+  score. Since `d − y = s′` is exactly what a perfect AEC should output,
+  `r = e − s′` is everything the AEC got wrong in one signal: leftover echo
+  it failed to cancel *plus* any damage it did to near-end speech (perfect
+  AEC → `r = 0`). Using ground truth instead of assuming `d ≈ echo` keeps
+  it valid during double-talk, where classic ERLE breaks. The catch: it's a
+  combined number, so strong suppression and duplex damage can cancel out —
+  which is why WebRTC nets ≈0 dB despite crushing the echo.
+- **ST-FE ERLE** — pure echo suppression: classic ERLE `10·log10(Σd²/Σe²)`
+  over far-end single-talk frames only (20 ms frames, echo active, near-end
+  silent). In those frames `d` is essentially all echo, so "output got
+  quieter" genuinely means "echo got cancelled." Deliberately blind to
+  near-end damage — there's no near-end speech in these frames to damage.
+  The axis where WebRTC's NLP shines (16.3 dB).
+- **Near-end SDR** — duplex quality: `10·log10(Σs²/Σ(e−s)²)` over
+  near-end-active frames — how intact near-end speech comes through. The
+  error `e − s` is penalized whether it's residual echo sitting on top of
+  the speech or the AEC attenuating the speech itself. The axis where
+  WebRTC's NLP pays (−1.8 dB, half-duplex gating).
+
+No single number separates "cancels echo well" from "leaves the
+conversation two-way" — the linear filters and WebRTC sit at opposite
+corners of that trade-off (see `plots/suppression_vs_quality.png`), and
+true ERLE alone would hide it.
 
 A cross-correlation bulk-delay estimator aligns `x` before filtering (as
 real AEC front-ends do) — without it the dataset's 40–120 ms time-varying
