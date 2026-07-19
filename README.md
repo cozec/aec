@@ -7,13 +7,16 @@ adaptive filters from [ewan-xu/pyaec](https://github.com/ewan-xu/pyaec) and
 on the [Microsoft AEC-Challenge](https://github.com/microsoft/AEC-Challenge)
 synthetic dataset (ICASSP 2021–2023 challenges).
 
-![AEC system block diagram](diagrams/aec-block-diagram.png)
+![AEC system block diagram](diagrams/aec-system-overview.png)
 
-*How AEC works: the far-end signal `x` drives the loudspeaker and an adaptive
-filter; the mic picks up the room echo plus near-end speech (`d = echo + s`);
-the filter's echo estimate `ŷ` is subtracted to produce the output
-`e = d − ŷ`, which returns to the far end and drives the adaptation loop — a
-double-talk detector freezes adaptation when the near end is speaking.*
+*How AEC works: the far-end signal drives the loudspeaker and an adaptive
+filter; the mic picks up the room echo plus near-end speech; the filter's
+echo estimate is subtracted at the summing node, and the residual returns to
+the far end while driving the adaptation loop — a double-talk detector (DTD)
+freezes adaptation when the near end is speaking. Production stacks add
+post-processing (NLP residual suppression, noise reduction, comfort noise,
+AGC); the pyaec filters benchmarked here are the adaptive-filter core, and
+WebRTC additionally includes the NLP stage.*
 
 ## The algorithms
 
