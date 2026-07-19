@@ -77,7 +77,16 @@ predicted echo; they differ in how they adapt:
   0.001) and by far the strongest suppressor (16.3 dB ST-FE ERLE), but the
   NLP gates near-end speech whenever far-end is active (−1.8 dB near-end
   SDR, half-duplex behavior), so the combined true-ERLE metric nets out
-  near zero.
+  near zero. No explicit double-talk detector: the legacy AEC wrapped here
+  handles double-talk implicitly — the linear filter has divergence
+  safeguards (if error energy exceeds mic energy it falls back to the mic
+  signal and can rescale the filter, avoiding NLMS-style mis-adaptation),
+  and the NLP gain is driven by per-bin coherence (mic↔far-end,
+  mic↔error), which in principle backs off when near-end speech lowers
+  mic/far-end coherence but in practice is tuned to err toward
+  suppression — the half-duplex behavior the near-end SDR measures. (The
+  newer AEC3 goes further with dual coarse/refined filters and adaptation
+  control, but that's not what this binding wraps.)
 
 In one sentence: gradient filters (NLMS/PFDAF) die under double-talk,
 Kalman filters survive it by design, FDAF survives it by accident, and
